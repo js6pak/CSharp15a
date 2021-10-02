@@ -53,6 +53,7 @@ namespace CSharp15a
                         services.Configure<ConsoleLifetimeOptions>(opts => opts.SuppressStatusMessages = true);
 
                         services.AddSingleton<PlayerManager>();
+                        services.AddSingleton<BetacraftManager>();
                         services
                             .AddSingleton<ServerService>()
                             .AddSingleton<IHostedService, ServerService>(serviceProvider => serviceProvider.GetRequiredService<ServerService>());

@@ -17,10 +17,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Bedrock.Framework.Protocols;
+using CSharp15a.Configuration;
 using CSharp15a.Network.Messages;
 using CSharp15a.Services;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CSharp15a.Network
 {
@@ -29,18 +31,24 @@ namespace CSharp15a.Network
         private readonly MinecraftProtocol _protocol = new MinecraftProtocol();
 
         private readonly ILogger<MinecraftConnectionHandler> _logger;
+        private readonly ServerOptions _serverOptions;
         private readonly ServerService _serverService;
         private readonly PlayerManager _playerManager;
+        private readonly BetacraftManager _betacraftManager;
 
-        public MinecraftConnectionHandler(ILogger<MinecraftConnectionHandler> logger, ServerService serverService, PlayerManager playerManager)
+        public MinecraftConnectionHandler(ILogger<MinecraftConnectionHandler> logger, IOptions<ServerOptions> serverOptions, ServerService serverService, PlayerManager playerManager, BetacraftManager betacraftManager)
         {
             _logger = logger;
+            _serverOptions = serverOptions.Value;
             _serverService = serverService;
             _playerManager = playerManager;
+            _betacraftManager = betacraftManager;
         }
 
         public override async Task OnConnectedAsync(ConnectionContext connection)
         {
+            string? disconnectionMessage = null;
+
             var reader = connection.CreateReader();
             var writer = connection.CreateWriter();
 
@@ -67,11 +75,32 @@ namespace CSharp15a.Network
                             throw new ConnectionAbortedException("Server is full");
                         }
 
+                        Guid? uuid = null;
+
+                        if (_serverOptions.OnlineMode)
+                        {
+                            try
+                            {
+                                uuid = await _betacraftManager.HasJoinedAsync(connection.LocalEndPoint!, handshake.PlayerName);
+                            }
+                            catch (Exception e)
+                            {
+                                _logger.LogError(e, "Error during authentication");
+                            }
+
+                            if (uuid == null)
+                            {
+                                throw new ConnectionAbortedException("Authentication failed");
+                            }
+
+                            _logger.LogInformation("Player {Name} successfully authenticated as {Uuid}", handshake.PlayerName, uuid);
+                        }
+
                         Player player;
 
                         lock (_playerManager.Players)
                         {
-                            player = new Player(writer, _protocol, _playerManager.GetNextId(), handshake.PlayerName);
+                            player = new Player(writer, _protocol, _playerManager.GetNextId(), handshake.PlayerName, uuid);
                             if (!_playerManager.Players.TryAdd(connection, player))
                             {
                                 throw new ConnectionAbortedException("Failed to add player");
@@ -104,6 +133,8 @@ namespace CSharp15a.Network
                 }
                 catch (Exception ex) when (ex is ConnectionResetException or ConnectionAbortedException)
                 {
+                    disconnectionMessage = ex.Message;
+
                     var source = new CancellationTokenSource();
                     source.Cancel();
                     connection.ConnectionClosed = source.Token;
@@ -119,8 +150,12 @@ namespace CSharp15a.Network
             {
                 if (_playerManager.Players.TryRemove(connection, out var player))
                 {
-                    _logger.LogInformation("Player {Name} ({Id}) disconnected", player.Name, player.Id);
+                    _logger.LogInformation("Player {Name} ({Id}) disconnected - {Message}", player.Name, player.Id, disconnectionMessage);
                     await player.DisposeAsync();
+                }
+                else
+                {
+                    _logger.LogInformation("Client {Address} disconnected - {Message}", connection.RemoteEndPoint?.ToString(), disconnectionMessage);
                 }
             }
         }

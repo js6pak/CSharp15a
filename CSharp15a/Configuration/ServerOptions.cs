@@ -25,5 +25,8 @@ namespace CSharp15a.Configuration
 
         [ConfigurationKeyName("max-players")]
         public int MaxPlayers { get; init; }
+
+        [ConfigurationKeyName("online-mode")]
+        public bool OnlineMode { get; init; }
     }
 }

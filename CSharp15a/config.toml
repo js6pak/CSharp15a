@@ -1,6 +1,7 @@
 [server]
 name = "Example server"
 max-players = 64
+online-mode = true
 
 [worlds.main]
 default = true

@@ -34,6 +34,7 @@ namespace CSharp15a
 
         public byte Id { get; }
         public string Name { get; }
+        public Guid? Uuid { get; }
 
         public World? World { get; private set; }
 
@@ -41,13 +42,14 @@ namespace CSharp15a
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
 
-        public Player(ProtocolWriter connectionContext, MinecraftProtocol protocol, byte id, string name)
+        public Player(ProtocolWriter connectionContext, MinecraftProtocol protocol, byte id, string name, Guid? uuid)
         {
             _writer = connectionContext;
             _protocol = protocol;
 
             Id = id;
             Name = name;
+            Uuid = uuid;
 
             _pingTimer = new Timer(PingAsync, null, 500, 500);
         }
