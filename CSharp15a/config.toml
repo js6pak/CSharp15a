@@ -1,0 +1,10 @@
+[server]
+name = "Example server"
+max-players = 64
+
+[worlds.main]
+default = true
+generator = "classic"
+
+[worlds.flat]
+generator = "flat"

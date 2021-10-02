@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+        <FeatureGenericMath>true</FeatureGenericMath>
+        <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
+
+        <RootNamespace>System.Numerics</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.Experimental" Version="6.0.0-preview.7.21377.19" />
+    </ItemGroup>
+
+</Project>
